@@ -26,3 +26,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["autocron"]
+
+[tool.setuptools.package-data]
+autocron = ["../SKILL.md", "../examples/*.md", "../scripts/*"]
