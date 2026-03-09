@@ -40,7 +40,7 @@ User → "automate nightly database backup with 30-day rotation"
 
 **One-liner:**
 ```bash
-pip3 install copaw git+https://github.com/miltosdoc/autocron.git && autocron install
+python3 -m venv ~/.autocron-env && source ~/.autocron-env/bin/activate && pip install copaw git+https://github.com/miltosdoc/autocron.git && autocron install
 ```
 
 That's it. `autocron install` copies the skill into CoPaw's `~/.copaw/customized_skills/autocron/` automatically.
