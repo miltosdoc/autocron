@@ -1,0 +1,28 @@
+[project]
+name = "autocron-agent"
+version = "0.1.0"
+description = "Autonomous cron job creation, testing, and deployment via dual-LLM feedback loop. CoPaw skill + standalone CLI."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+dependencies = [
+    "httpx>=0.27.0",
+]
+
+[project.optional-dependencies]
+copaw = [
+    "copaw>=0.0.5",
+]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+autocron = "autocron.main:main"
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["autocron"]
