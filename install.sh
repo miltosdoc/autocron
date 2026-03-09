@@ -24,7 +24,7 @@ echo "📥 Upgrading pip..."
 pip install --upgrade pip 2>&1 | tail -1
 
 # 4. Install AutoCron
-echo "📥 Installing AutoCron from GitHub..."
+echo "📥 Installing AutoCron from GitHub (this takes ~30 seconds)..."
 pip install "autocron-agent @ git+$REPO" 2>&1 | tail -5
 if [ $? -ne 0 ]; then
     echo "❌ Failed to install autocron-agent"
