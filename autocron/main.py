@@ -510,36 +510,146 @@ class AutoCron:
 
 
 # ---------------------------------------------------------------------------
+# Skill Installer
+# ---------------------------------------------------------------------------
+
+def install_copaw_skill():
+    """Install AutoCron as a CoPaw custom skill."""
+    import shutil
+
+    # Find our package root (directory containing SKILL.md)
+    pkg_dir = Path(__file__).resolve().parent
+    project_root = pkg_dir.parent  # autocron-agent/ or site-packages parent
+
+    # Look for SKILL.md in project root (dev install) or package dir
+    skill_md = None
+    for candidate in [project_root / "SKILL.md", pkg_dir / "SKILL.md"]:
+        if candidate.exists():
+            skill_md = candidate
+            break
+
+    if skill_md is None:
+        # pip-installed: SKILL.md should be alongside the package
+        # Try finding it relative to the installed package
+        print("⚠️  SKILL.md not found next to package. Generating minimal one...")
+        skill_md = None
+
+    # CoPaw customized skills directory
+    copaw_skills_dir = Path.home() / ".copaw" / "customized_skills" / "autocron"
+    copaw_skills_dir.mkdir(parents=True, exist_ok=True)
+
+    source_root = skill_md.parent if skill_md else project_root
+
+    # Copy SKILL.md
+    if skill_md:
+        shutil.copy2(skill_md, copaw_skills_dir / "SKILL.md")
+        print(f"  ✅ SKILL.md → {copaw_skills_dir / 'SKILL.md'}")
+
+    # Copy autocron/ package
+    dest_pkg = copaw_skills_dir / "autocron"
+    if dest_pkg.exists():
+        shutil.rmtree(dest_pkg)
+    shutil.copytree(pkg_dir, dest_pkg, ignore=shutil.ignore_patterns(
+        "__pycache__", "*.pyc", "*.egg-info",
+    ))
+    print(f"  ✅ autocron/ → {dest_pkg}")
+
+    # Copy examples/ if present
+    examples_src = source_root / "examples"
+    if examples_src.exists():
+        dest_examples = copaw_skills_dir / "examples"
+        if dest_examples.exists():
+            shutil.rmtree(dest_examples)
+        shutil.copytree(examples_src, dest_examples)
+        print(f"  ✅ examples/ → {dest_examples}")
+
+    # Copy scripts/ if present
+    scripts_src = source_root / "scripts"
+    if scripts_src.exists():
+        dest_scripts = copaw_skills_dir / "scripts"
+        if dest_scripts.exists():
+            shutil.rmtree(dest_scripts)
+        shutil.copytree(scripts_src, dest_scripts)
+        print(f"  ✅ scripts/ → {dest_scripts}")
+
+    print(f"\n🤖 AutoCron skill installed to {copaw_skills_dir}")
+    print("   Restart CoPaw to activate: copaw app")
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser(description="AutoCron v3")
-    parser.add_argument("task_file", help="Path to task.md")
-    parser.add_argument("--max-rounds", type=int, default=30)
-    parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--output-dir", default="runs")
-    parser.add_argument("--knowledge-dir", default="~/.autocron/knowledge")
-    parser.add_argument("--scripts-dir", default="~/.autocron/scripts")
-    parser.add_argument("--worker-model", default="qwen3:27b")
-    parser.add_argument("--worker-url", default="http://localhost:11434")
-    parser.add_argument("--manager-provider", default="anthropic",
-                        choices=["anthropic", "openai"])
-    parser.add_argument("--manager-model", default="claude-sonnet-4-20250514")
-    parser.add_argument("--sandbox-timeout", type=int, default=60)
-    parser.add_argument("--log-level", default="INFO")
-    parser.add_argument("--cosmetic-patience", type=int, default=3,
-                        help="Rounds of cosmetic-only issues before soft stop")
-    parser.add_argument("--skip-routing", action="store_true",
-                        help="Skip router, always run full loop")
+    parser = argparse.ArgumentParser(
+        description="AutoCron — Autonomous cron job creation via dual-LLM feedback loop",
+    )
+    subparsers = parser.add_subparsers(dest="command")
 
-    args = parser.parse_args()
-    config = Config(**vars(args))
+    # ── autocron install ──────────────────────────────────────────
+    subparsers.add_parser("install", help="Install AutoCron as a CoPaw custom skill")
 
-    engine = AutoCron(config)
-    state = engine.run()
-    sys.exit(0 if state.solved else 1)
+    # ── autocron run <task_file> ──────────────────────────────────
+    run_parser = subparsers.add_parser("run", help="Run AutoCron on a task file")
+    run_parser.add_argument("task_file", help="Path to task.md")
+    run_parser.add_argument("--max-rounds", type=int, default=30)
+    run_parser.add_argument("--dry-run", action="store_true")
+    run_parser.add_argument("--output-dir", default="runs")
+    run_parser.add_argument("--knowledge-dir", default="~/.autocron/knowledge")
+    run_parser.add_argument("--scripts-dir", default="~/.autocron/scripts")
+    run_parser.add_argument("--worker-model", default="qwen3:27b")
+    run_parser.add_argument("--worker-url", default="http://localhost:11434")
+    run_parser.add_argument("--manager-url", default=None)
+    run_parser.add_argument("--manager-model", default="claude-sonnet-4-20250514")
+    run_parser.add_argument("--manager-api-key", default=None)
+    run_parser.add_argument("--sandbox-timeout", type=int, default=60)
+    run_parser.add_argument("--log-level", default="INFO")
+    run_parser.add_argument("--cosmetic-patience", type=int, default=3,
+                            help="Rounds of cosmetic-only issues before soft stop")
+    run_parser.add_argument("--skip-routing", action="store_true",
+                            help="Skip router, always run full loop")
+
+    # ── Backward compat: autocron <task_file> (no subcommand) ────
+    args, remaining = parser.parse_known_args()
+
+    if args.command == "install":
+        install_copaw_skill()
+        return
+
+    if args.command == "run":
+        config = Config(**{k: v for k, v in vars(args).items() if k != "command"})
+        engine = AutoCron(config)
+        state = engine.run()
+        sys.exit(0 if state.solved else 1)
+
+    # Fallback: treat first arg as task_file (backward compat)
+    if remaining or (not args.command and len(sys.argv) > 1):
+        # Re-parse with the old flat arg format
+        flat_parser = argparse.ArgumentParser(description="AutoCron")
+        flat_parser.add_argument("task_file", help="Path to task.md")
+        flat_parser.add_argument("--max-rounds", type=int, default=30)
+        flat_parser.add_argument("--dry-run", action="store_true")
+        flat_parser.add_argument("--output-dir", default="runs")
+        flat_parser.add_argument("--knowledge-dir", default="~/.autocron/knowledge")
+        flat_parser.add_argument("--scripts-dir", default="~/.autocron/scripts")
+        flat_parser.add_argument("--worker-model", default="qwen3:27b")
+        flat_parser.add_argument("--worker-url", default="http://localhost:11434")
+        flat_parser.add_argument("--manager-provider", default="anthropic",
+                                 choices=["anthropic", "openai"])
+        flat_parser.add_argument("--manager-model", default="claude-sonnet-4-20250514")
+        flat_parser.add_argument("--sandbox-timeout", type=int, default=60)
+        flat_parser.add_argument("--log-level", default="INFO")
+        flat_parser.add_argument("--cosmetic-patience", type=int, default=3)
+        flat_parser.add_argument("--skip-routing", action="store_true")
+        flat_args = flat_parser.parse_args()
+        config = Config(**vars(flat_args))
+        engine = AutoCron(config)
+        state = engine.run()
+        sys.exit(0 if state.solved else 1)
+
+    parser.print_help()
 
 
 if __name__ == "__main__":
     main()
+

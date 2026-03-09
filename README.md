@@ -38,23 +38,17 @@ User → "automate nightly database backup with 30-day rotation"
 
 ### As CoPaw Skill (recommended)
 
+**One-liner:**
 ```bash
-# 1. Install CoPaw
-pip install copaw
-
-# 2. Install AutoCron as a CoPaw custom skill
-git clone https://github.com/miltosdoc/autocron.git
-cp -r autocron ~/.copaw/customized_skills/autocron
-
-# 3. Install AutoCron's Python package
-pip install ./autocron
-
-# 4. Start CoPaw, connect Telegram, and chat
-copaw app
+pip install copaw git+https://github.com/miltosdoc/autocron.git && autocron install
 ```
 
-Then in Telegram:
-> "automate checking my clinic schedule every weekday at 7am"
+That's it. `autocron install` copies the skill into CoPaw's `~/.copaw/customized_skills/autocron/` automatically.
+
+Then start CoPaw and chat:
+```bash
+copaw app
+```
 
 ### Standalone CLI
 
