@@ -38,12 +38,20 @@ User → "automate nightly database backup with 30-day rotation"
 
 ### As CoPaw Skill (recommended)
 
-**One command:**
+**Step 1 — Install [CoPaw](https://github.com/copaw/copaw) (the AI assistant platform):**
+```bash
+pip install copaw
+```
+
+**Step 2 — Install AutoCron (adds the cron job skill):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/miltosdoc/autocron/main/install.sh | bash
 ```
 
-That's it. Open a new terminal and run `copaw app`.
+Open a new terminal and run `copaw app`.
+
+> **Note (macOS):** If `pip` gives a "externally managed" error, install Python 3.13 first:
+> `brew install python@3.13` — then use `pip3.13` instead of `pip`.
 
 ### Standalone CLI
 
