@@ -1,6 +1,4 @@
 #!/bin/bash
-set -e
-
 # AutoCron Installer
 # Usage: curl -fsSL https://raw.githubusercontent.com/miltosdoc/autocron/main/install.sh | bash
 
@@ -11,23 +9,34 @@ echo ""
 VENV_DIR="$HOME/.autocron-env"
 REPO="https://github.com/miltosdoc/autocron.git"
 
-# 1. Create venv
-if [ ! -d "$VENV_DIR" ]; then
-    echo "📦 Creating Python environment..."
-    python3 -m venv "$VENV_DIR"
+# 1. Create or reuse venv
+echo "📦 Setting up Python environment at $VENV_DIR ..."
+python3 -m venv "$VENV_DIR" || { echo "❌ Failed to create venv. Is python3 installed?"; exit 1; }
+
+# 2. Activate
+echo "   Activating..."
+. "$VENV_DIR/bin/activate" || { echo "❌ Failed to activate venv"; exit 1; }
+echo "   Using python: $(which python)"
+echo "   Using pip: $(which pip)"
+
+# 3. Upgrade pip
+echo "📥 Upgrading pip..."
+pip install --upgrade pip 2>&1 | tail -1
+
+# 4. Install AutoCron
+echo "📥 Installing AutoCron from GitHub..."
+pip install "autocron-agent @ git+$REPO" 2>&1 | tail -5
+if [ $? -ne 0 ]; then
+    echo "❌ Failed to install autocron-agent"
+    exit 1
 fi
-source "$VENV_DIR/bin/activate"
 
-# 2. Install packages
-echo "📥 Installing CoPaw + AutoCron (this may take a minute)..."
-pip install --upgrade pip -q
-pip install "autocron-agent @ git+$REPO"
-
-# 3. Register CoPaw skill
+# 5. Register CoPaw skill
 echo ""
-autocron install
+echo "🔧 Registering CoPaw skill..."
+"$VENV_DIR/bin/autocron" install || { echo "❌ Failed to register skill"; exit 1; }
 
-# 4. Add to PATH permanently
+# 6. Add to PATH
 AUTOCRON_BIN="$VENV_DIR/bin"
 SHELL_RC=""
 if [ -f "$HOME/.zshrc" ]; then
@@ -38,10 +47,10 @@ fi
 
 if [ -n "$SHELL_RC" ]; then
     if ! grep -q "autocron-env/bin" "$SHELL_RC" 2>/dev/null; then
-        echo "" >> "$SHELL_RC"
-        echo "# AutoCron" >> "$SHELL_RC"
-        echo "export PATH=\"$AUTOCRON_BIN:\$PATH\"" >> "$SHELL_RC"
+        printf '\n# AutoCron\nexport PATH="%s:$PATH"\n' "$AUTOCRON_BIN" >> "$SHELL_RC"
         echo "🔗 Added to PATH in $SHELL_RC"
+    else
+        echo "🔗 Already in PATH"
     fi
 fi
 
