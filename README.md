@@ -43,11 +43,11 @@ User → "automate nightly database backup with 30-day rotation"
 pip install copaw
 
 # 2. Install AutoCron as a CoPaw custom skill
-git clone https://github.com/youruser/autocron-agent.git
-cp -r autocron-agent ~/.copaw/customized_skills/autocron
+git clone https://github.com/miltosdoc/autocron.git
+cp -r autocron ~/.copaw/customized_skills/autocron
 
 # 3. Install AutoCron's Python package
-pip install ./autocron-agent
+pip install ./autocron
 
 # 4. Start CoPaw, connect Telegram, and chat
 copaw app
