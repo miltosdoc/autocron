@@ -9,9 +9,22 @@ echo ""
 VENV_DIR="$HOME/.autocron-env"
 REPO="https://github.com/miltosdoc/autocron.git"
 
-# 1. Create or reuse venv
-echo "📦 Setting up Python environment at $VENV_DIR ..."
-python3 -m venv "$VENV_DIR" || { echo "❌ Failed to create venv. Is python3 installed?"; exit 1; }
+# 1. Find Python 3.13 (CoPaw needs Python <3.14)
+PYTHON=""
+for p in /opt/homebrew/opt/python@3.13/bin/python3.13 python3.13 python3; do
+    if command -v "$p" &>/dev/null; then
+        PYTHON="$p"
+        break
+    fi
+done
+
+if [ -z "$PYTHON" ]; then
+    echo "❌ Python 3 not found. Install it with: brew install python@3.13"
+    exit 1
+fi
+
+echo "📦 Setting up Python environment at $VENV_DIR (using $PYTHON)..."
+"$PYTHON" -m venv "$VENV_DIR" || { echo "❌ Failed to create venv."; exit 1; }
 
 # 2. Activate
 echo "   Activating..."
